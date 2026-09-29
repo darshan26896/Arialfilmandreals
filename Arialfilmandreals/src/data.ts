@@ -398,11 +398,11 @@ export const LIBRARY: LibraryItem[] = [
   {
     id: "L09",
     kind: "video",
-    title: "Tatsaraasa reel",
-    place: "Udaipur, Rajasthan",
+    title: "Rooftop golden-hour reel",
+    place: "Randesan",
     meta: "00:15 · 9:16 · reel",
-    img: "https://www.tatsaraasa.com/wp-content/uploads/2021/05/n30.jpg",
-    video: "https://www.dropbox.com/scl/fi/4qgsobjuzrij7xdt158cz/lv_0_20260929233722.mp4?rlkey=1quvgsbr2r4v9t4ox0qikjbuk&st=7yyg9z5j&dl=0",
+    img: "images/lib-rooftop.jpg",
+    video: "videos/rooftop-golden-hour.mp4",
     tags: ["video", "reels"],
     ratio: "aspect-[3/4]",
   },
@@ -414,6 +414,17 @@ export const LIBRARY: LibraryItem[] = [
     meta: "Still · 12 MP · 22:10 IST",
     img: "images/lib-night.jpg",
     tags: ["photo", "events"],
+    ratio: "aspect-[16/10]",
+  },
+  {
+    id: "L11",
+    kind: "video",
+    title: "Villa reveal",
+    place: "Sargasan",
+    meta: "00:22 · 4K/30 · DJI Neo",
+    img: "https://www.dropbox.com/scl/fi/4qgsobjuzrij7xdt158cz/lv_0_20260929233722.mp4?rlkey=1quvgsbr2r4v9t4ox0qikjbuk&st=jodkpcaj&dl=0",   // thumbnail
+    video: "https://www.dropbox.com/scl/fi/4qgsobjuzrij7xdt158cz/lv_0_20260929233722.mp4?rlkey=1quvgsbr2r4v9t4ox0qikjbuk&st=jodkpcaj&dl=0",
+    tags: ["video", "property"],
     ratio: "aspect-[16/10]",
   },
 ];
