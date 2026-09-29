@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { STUDIO, NAV, STATS } from "../data";
 import { Mark, ChartOverlay, CameraHUD, TimelineStrip, Ticker } from "../ui";
+import { KeyRound } from "lucide-react";
 import { usePlan, type Plan } from "../theme";
 
 /* ---------------------------------------------------------------- */
@@ -83,7 +84,7 @@ export function ViewToggle() {
 /* Masthead                                                          */
 /* ---------------------------------------------------------------- */
 
-export function Header() {
+export function Header({ onOpenAdmin }: { onOpenAdmin: () => void }) {
   return (
     <header className="fixed inset-x-0 top-0 z-30 border-b border-ink/20 bg-paper/95 backdrop-blur-sm xl:left-[52px]">
       <div className="flex h-14 items-center gap-3 px-4 sm:gap-5 sm:px-7">
@@ -113,6 +114,15 @@ export function Header() {
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3 lg:ml-0">
           <ViewToggle />
+          <button
+            type="button"
+            onClick={onOpenAdmin}
+            title="Open the admin panel"
+            aria-label="Open the admin panel"
+            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center border border-ink/30 text-inksoft transition-colors hover:border-signal hover:text-signal"
+          >
+            <KeyRound className="h-[15px] w-[15px]" strokeWidth={1.8} />
+          </button>
           <a
             href="#contact"
             className="u-label flex items-center gap-2 border border-ink px-3 py-2 text-ink transition-colors hover:border-signal hover:bg-signal hover:text-paper"

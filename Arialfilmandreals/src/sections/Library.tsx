@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { LIBRARY, FILTERS } from "../data";
+import { FILTERS } from "../data";
+import { mediaUrl } from "../lib/dropbox";
+import { getLibraryItems } from "../lib/admin";
 import { Reveal, SectionHead } from "../ui";
 
 export function Library() {
@@ -8,13 +10,18 @@ export function Library() {
   const [open, setOpen] = useState<number | null>(null);
   const [failed, setFailed] = useState<Record<string, boolean>>({});
 
-  const items = useMemo(
-    () =>
-      filter === "all"
-        ? LIBRARY
-        : LIBRARY.filter((i) => i.tags.includes(filter)),
-    [filter],
-  );
+  const [refresh, setRefresh] = useState(0);
+
+  useEffect(() => {
+    const onChange = () => setRefresh((r) => r + 1);
+    window.addEventListener("library:changed", onChange);
+    return () => window.removeEventListener("library:changed", onChange);
+  }, []);
+
+  const items = useMemo(() => {
+    const all = getLibraryItems();
+    return filter === "all" ? all : all.filter((i) => i.tags.includes(filter));
+  }, [filter, refresh]);
 
   useEffect(() => {
     if (open === null) return;
@@ -100,7 +107,7 @@ export function Library() {
               className="group relative mb-4 block w-full break-inside-avoid overflow-hidden border border-ink/20 text-left"
             >
               <img
-                src={item.img}
+                src={mediaUrl(item.img)}
                 alt={`${item.title} — ${item.place}`}
                 loading="lazy"
                 className={`w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.05] ${item.ratio}`}
@@ -179,8 +186,8 @@ export function Library() {
                 current.video &&
                 !failed[current.id] ? (
                   <video
-                    src={current.video}
-                    poster={current.img}
+                    src={mediaUrl(current.video)}
+                    poster={mediaUrl(current.img)}
                     controls
                     autoPlay
                     playsInline
@@ -191,7 +198,7 @@ export function Library() {
                   />
                 ) : (
                   <img
-                    src={current.img}
+                    src={mediaUrl(current.img)}
                     alt={`${current.title} — ${current.place}`}
                     className="max-h-[66vh] w-full object-contain"
                   />
@@ -247,6 +254,34 @@ export function Library() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Reveal className="mt-12">
+        <div className="border border-signal/45 bg-signal/[0.07] p-6 sm:p-8">
+          <div className="u-label text-signal">
+            Shot on DJI Neo · 135 g · what the drone video looks like
+          </div>
+          <p className="mt-3 max-w-3xl text-[15px] leading-[1.7] text-ink/85">
+            Every clip in this library is flown on the DJI Neo — the same aircraft
+            that will film your shoot. It lifts off from a palm, follows the
+            subject by itself and records stabilised 4K video, which is why an
+            orbit around a temple, a garden or a bungalow comes out this smooth
+            from a drone this small.
+          </p>
+          <div className="mt-7 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+            {[
+              ["4K / 30 fps", "Video quality"],
+              ["RockSteady", "Electronic stabilisation"],
+              ["18 min", "Flight per battery"],
+              ["135 g", "Nano class — flies almost anywhere"],
+            ].map(([v, k]) => (
+              <div key={k}>
+                <div className="u-num text-[17px] font-medium text-ink">{v}</div>
+                <div className="u-label mt-1.5 text-inksoft">{k}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Reveal>
 
       <Reveal className="mt-12">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">

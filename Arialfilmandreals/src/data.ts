@@ -2,9 +2,9 @@ export const STUDIO = {
   name: "Arialfilmandreals",
   full: "Aerial Film & Reel Studio",
   base: "Sector 23, Gandhinagar, Gujarat 382023",
-  phone: "+91 9429368879",
-  phoneHref: "tel:+919429368879",
-  whatsapp: "https://wa.me/8160406245",
+  phone: "+91 98250 38200",
+  phoneHref: "tel:+919825038200",
+  whatsapp: "https://wa.me/919825038200",
   email: "joysolanki055@gmail.com",
   notify: "joysolanki055@gmail.com",
   instagram: "@Arialfilmandreals",
@@ -18,7 +18,12 @@ export const STUDIO = {
  * While it still says PASTE… the form falls back to FormSubmit +      *
  * email draft, so enquiries still get through.                        *
  * ------------------------------------------------------------------ */
-export const WEB3FORMS_KEY = "8dd89daa-9ec9-49d0-9503-8a5339978a83";
+export const WEB3FORMS_KEY = "PASTE_YOUR_WEB3FORMS_ACCESS_KEY";
+
+/* Dropbox Chooser app key — free from dropbox.com/developers (type: Scoped
+ * access, "Chooser" enabled). Only needed for the one-click picker; pasting
+ * share links works without it. */
+export const DROPBOX_APP_KEY = "PASTE_YOUR_DROPBOX_APP_KEY";
 
 export const NAV = [
   { id: "work", label: "Work" },
@@ -377,13 +382,13 @@ export const LIBRARY: LibraryItem[] = [
   {
     id: "L07",
     kind: "video",
-    title: "Café interiors on iPhone",
-    place: "Sector 21",
-    meta: "00:12 · 4K/60 · iPhone",
-    img: "images/phone-rig.jpg",
-    video: "videos/cafe-interiors.mp4",
-    tags: ["video", "reels"],
-    ratio: "aspect-[4/3]",
+    title: "Gandhinagar garden flyover",
+    place: "Sarita Udyan · gardens, Gandhinagar",
+    meta: "00:28 · 4K/30 · DJI Neo",
+    img: "https://images.pexels.com/photos/26811067/pexels-photo-26811067.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    video: "videos/gandhinagar-garden.mp4",
+    tags: ["video", "heritage", "reels"],
+    ratio: "aspect-[16/10]",
   },
   {
     id: "L08",
@@ -398,12 +403,12 @@ export const LIBRARY: LibraryItem[] = [
   {
     id: "L09",
     kind: "video",
-    title: "Rooftop golden-hour reel",
-    place: "Randesan",
-    meta: "00:15 · 9:16 · reel",
-    img: "images/lib-rooftop.jpg",
-    video: "videos/rooftop-golden-hour.mp4",
-    tags: ["video", "reels"],
+    title: "Dandi Mandir drone darshan",
+    place: "Dandi Mandir, Gandhinagar",
+    meta: "00:26 · 4K/30 · DJI Neo",
+    img: "https://images.pexels.com/photos/39017057/pexels-photo-39017057.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    video: "videos/dandi-mandir.mp4",
+    tags: ["video", "heritage"],
     ratio: "aspect-[3/4]",
   },
   {
