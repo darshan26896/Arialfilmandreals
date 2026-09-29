@@ -416,15 +416,4 @@ export const LIBRARY: LibraryItem[] = [
     tags: ["photo", "events"],
     ratio: "aspect-[16/10]",
   },
-  {
-    id: "L11",
-    kind: "video",
-    title: "Villa reveal",
-    place: "Sargasan",
-    meta: "00:22 · 4K/30 · DJI Neo",
-    img: "https://www.dropbox.com/scl/fi/4qgsobjuzrij7xdt158cz/lv_0_20260929233722.mp4?rlkey=1quvgsbr2r4v9t4ox0qikjbuk&st=jodkpcaj&dl=0",   // thumbnail
-    video: "https://www.dropbox.com/scl/fi/4qgsobjuzrij7xdt158cz/lv_0_20260929233722.mp4?rlkey=1quvgsbr2r4v9t4ox0qikjbuk&st=jodkpcaj&dl=0",
-    tags: ["video", "property"],
-    ratio: "aspect-[16/10]",
-  },
 ];
