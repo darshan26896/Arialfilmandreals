@@ -1,8 +1,9 @@
 {
-  "name": "react-vite-tailwind",
+  "name": "arialfilmandreals",
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://darshan26896.github.io/Arialfilmandreals/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -24,6 +25,7 @@
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "5.1.1",
+    "gh-pages": "^6.3.0",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
     "vite": "7.3.2",
