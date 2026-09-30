@@ -25,6 +25,30 @@ export const WEB3FORMS_KEY = "PASTE_YOUR_WEB3FORMS_ACCESS_KEY";
  * share links works without it. */
 export const DROPBOX_APP_KEY = "PASTE_YOUR_DROPBOX_APP_KEY";
 
+/* ------------------------------------------------------------------ *
+ * ADMIN PANEL LOCK                                                    *
+ *                                                                     *
+ * Best: keep the hash out of the source entirely. Add a GitHub Actions *
+ * secret named ADMIN_PASSWORD_SHA256 (and optionally ADMIN_SETUP_KEY)  *
+ * in Settings → Secrets and variables → Actions. The deploy workflow   *
+ * passes them to the build below, so the value is never written into   *
+ * your repository. Generate the hash with:                             *
+ *   node -e "console.log(require('crypto').createHash('sha256')        *
+ *     .update('YOUR-STRONG-PASSWORD').digest('hex'))"                  *
+ *                                                                      *
+ * You can also paste the values straight in below if you prefer.       *
+ * ------------------------------------------------------------------ */
+
+const ENV: Record<string, string | undefined> =
+  (import.meta as unknown as { env?: Record<string, string | undefined> })
+    .env ?? {};
+
+export const ADMIN_PASSWORD_SHA256 =
+  ENV.VITE_ADMIN_PASSWORD_SHA256 ?? "";
+
+export const ADMIN_SETUP_KEY =
+  ENV.VITE_ADMIN_SETUP_KEY ?? "AFM-SETUP-ONLY-YOU-KNOW";
+
 export const NAV = [
   { id: "work", label: "Work" },
   { id: "library", label: "Library" },

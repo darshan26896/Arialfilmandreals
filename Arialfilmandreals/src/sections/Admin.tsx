@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FILTERS, LIBRARY, STUDIO, type LibraryItem } from "../data";
+import {
+  FILTERS,
+  LIBRARY,
+  STUDIO,
+  ADMIN_PASSWORD_SHA256,
+  ADMIN_SETUP_KEY,
+  type LibraryItem,
+} from "../data";
 import { Mark, Reveal } from "../ui";
 import {
   hashPassword,
+  verifyAgainst,
   passwordStrength,
   getStoredHash,
   setStoredHash,
@@ -15,6 +23,13 @@ import {
   exportable,
   type CustomItem,
 } from "../lib/admin";
+import {
+  probeBackend,
+  apiLogin,
+  apiList,
+  apiAdd,
+  apiRemove,
+} from "../lib/backend";
 
 const FIELD =
   "w-full border-b border-ink/30 bg-transparent py-2.5 text-[13.5px] text-ink placeholder:text-ink/35 transition-colors focus:border-signal focus:outline-none";
@@ -40,6 +55,7 @@ export function Admin() {
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
+  const [setupKey, setSetupKey] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -52,10 +68,30 @@ export function Admin() {
   const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [token, setToken] = useState<string | null>(null);
+  const [cloud, setCloud] = useState<boolean | null>(null);
+
   useEffect(() => {
     setHasPassword(Boolean(getStoredHash()));
     setItems(getLibraryItems());
     setHidden(loadHidden());
+
+    /* If a MongoDB backend is deployed, sync its items into the library. */
+    (async () => {
+      const online = await probeBackend(true);
+      setCloud(online);
+      if (!online) return;
+      const remote = await apiList();
+      if (remote.length) {
+        const local = loadCustom();
+        const merged = [
+          ...remote,
+          ...local.filter((l) => !remote.some((r) => r.id === l.id)),
+        ];
+        saveCustom(merged);
+        setItems(getLibraryItems());
+      }
+    })();
   }, []);
 
   const set = (k: keyof CustomItem) => (e: { target: { value: string } }) =>
@@ -75,13 +111,28 @@ export function Admin() {
     setBusy(true);
     setError("");
     try {
-      if (hasPassword) {
-        const ok = (await hashPassword(pw)) === getStoredHash();
+      if (needEntry) {
+        let ok = false;
+        if (embedded) ok = await verifyAgainst(pw, embedded);
+        if (!ok && hasPassword) {
+          ok = (await hashPassword(pw)) === getStoredHash();
+        }
+        if (!ok && cloud) {
+          const t = await apiLogin(pw);
+          if (t) {
+            setToken(t);
+            ok = true;
+          }
+        }
         if (!ok) {
           setError("Wrong password. Try again.");
           return;
         }
-      } else {
+      } else if (canSetup) {
+        if (setupKey.trim() !== ADMIN_SETUP_KEY.trim()) {
+          setError("That setup key is not correct.");
+          return;
+        }
         if (passwordStrength(pw) < 3) {
           setError("Use at least 12 characters with capitals, numbers and a symbol.");
           return;
@@ -153,6 +204,7 @@ export function Admin() {
     };
     const next = [item, ...loadCustom()];
     saveCustom(next);
+    if (token) void apiAdd(token, item);
     setItems(getLibraryItems());
     setForm(blank);
     setNote("Added to the library ✓");
@@ -166,6 +218,7 @@ export function Admin() {
     } else {
       saveHidden([...new Set([...loadHidden(), id])]);
     }
+    if (token) void apiRemove(token, id);
     setItems(getLibraryItems());
     setHidden(loadHidden());
     setNote("Removed ✓");
@@ -198,6 +251,12 @@ export function Admin() {
 
   const strength = passwordStrength(pw);
 
+  /* A hash embedded in the code locks the panel: no one can set a new
+     password from the website. Otherwise the one-time setup needs a key. */
+  const embedded = ADMIN_PASSWORD_SHA256.trim();
+  const needEntry = embedded.length > 0 || hasPassword;
+  const canSetup = embedded.length === 0 && !hasPassword;
+
   /* ================= LOCKED ================= */
   if (!unlocked) {
     return (
@@ -216,7 +275,7 @@ export function Admin() {
             className="mt-9 border border-paper/25 p-6 sm:p-8"
           >
             <div className="u-label text-paper/60">
-              {hasPassword
+              {needEntry
                 ? "Enter your password to manage the library"
                 : "First time — create your admin password"}
             </div>
@@ -237,8 +296,22 @@ export function Admin() {
                 />
               </div>
 
-              {!hasPassword && (
+              {!needEntry && (
                 <>
+                  <div>
+                    <label className="u-label block text-paper/60" htmlFor="akey">
+                      Owner setup key
+                    </label>
+                    <input
+                      id="akey"
+                      type="password"
+                      autoComplete="off"
+                      value={setupKey}
+                      onChange={(e) => setSetupKey(e.target.value)}
+                      placeholder="the key only you know"
+                      className={`${FIELD} border-paper/30 text-paper placeholder:text-paper/30`}
+                    />
+                  </div>
                   <div>
                     <label className="u-label block text-paper/60" htmlFor="apw2">
                       Repeat password
@@ -281,7 +354,7 @@ export function Admin() {
               disabled={busy}
               className="u-label-lg mt-8 flex items-center gap-3 bg-signal px-6 py-4 text-[#0B1013] transition-colors hover:bg-paper hover:text-ink disabled:opacity-60"
             >
-              {hasPassword ? "Unlock" : "Create password & unlock"}
+              {needEntry ? "Unlock" : "Create password & unlock"}
               <span aria-hidden="true">→</span>
             </button>
 
@@ -304,13 +377,20 @@ export function Admin() {
           <span className="mx-2 text-paper/30">/</span>
           Library manager
         </div>
-        <button
-          type="button"
-          onClick={() => setUnlocked(false)}
-          className="u-label border border-paper/30 px-3.5 py-2 transition-colors hover:bg-paper hover:text-ink"
-        >
-          Lock panel
-        </button>
+        <div className="flex items-center gap-3">
+          <span className="u-label text-paper/50">
+            {cloud
+              ? "● MongoDB · connected"
+              : "● Local mode · browser only"}
+          </span>
+          <button
+            type="button"
+            onClick={() => setUnlocked(false)}
+            className="u-label border border-paper/30 px-3.5 py-2 transition-colors hover:bg-paper hover:text-ink"
+          >
+            Lock panel
+          </button>
+        </div>
       </div>
 
       <h2 className="u-display mt-5 text-[clamp(2.1rem,6vw,3.4rem)] text-paper">

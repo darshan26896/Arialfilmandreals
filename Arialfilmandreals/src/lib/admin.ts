@@ -17,6 +17,27 @@ export async function hashPassword(pw: string): Promise<string> {
     .join("");
 }
 
+/** Un-salted digest, used for the hash you embed in src/data.ts. */
+export async function hashPlain(pw: string): Promise<string> {
+  const data = new TextEncoder().encode(pw);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(buf)]
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** Accepts either the plain or the salted digest as the stored value. */
+export async function verifyAgainst(
+  pw: string,
+  expected: string,
+): Promise<boolean> {
+  const want = expected.trim().toLowerCase();
+  if (!want) return false;
+  const plain = await hashPlain(pw);
+  const salted = await hashPassword(pw);
+  return plain === want || salted === want;
+}
+
 export function passwordStrength(pw: string): number {
   let s = 0;
   if (pw.length >= 12) s += 1;
