@@ -34,8 +34,8 @@ jobs:
         run: npm run build
         env:
           # Repository secrets → Settings → Secrets and variables → Actions
-          VITE_ADMIN_PASSWORD_SHA256: ${{ secrets.ADMIN_PASSWORD_SHA256 }}
-          VITE_ADMIN_SETUP_KEY: ${{ secrets.ADMIN_SETUP_KEY }}
+          VITE_ADMIN_PASSWORD_SHA256: ${{ secrets.VITE_ADMIN_PASSWORD_SHA256 || secrets.ADMIN_PASSWORD_SHA256 }}
+          VITE_ADMIN_SETUP_KEY: ${{ secrets.VITE_ADMIN_SETUP_KEY || secrets.ADMIN_SETUP_KEY }}
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

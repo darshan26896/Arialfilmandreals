@@ -129,6 +129,12 @@ export function Admin() {
           return;
         }
       } else if (canSetup) {
+        if (ADMIN_SETUP_KEY.trim() === "AFM-SETUP-ONLY-YOU-KNOW") {
+          setError(
+            "Panel not configured yet — add the GitHub secret VITE_ADMIN_PASSWORD_SHA256 and redeploy.",
+          );
+          return;
+        }
         if (setupKey.trim() !== ADMIN_SETUP_KEY.trim()) {
           setError("That setup key is not correct.");
           return;
