@@ -3,17 +3,14 @@ import {
   FILTERS,
   LIBRARY,
   STUDIO,
-  ADMIN_PASSWORD_SHA256,
   ADMIN_SETUP_KEY,
+  ADMIN_EMAIL,
+  OTP_ENABLED,
   type LibraryItem,
 } from "../data";
 import { Mark, Reveal } from "../ui";
 import {
-  hashPassword,
-  verifyAgainst,
   passwordStrength,
-  getStoredHash,
-  setStoredHash,
   loadCustom,
   saveCustom,
   loadHidden,
@@ -29,6 +26,10 @@ import {
   apiList,
   apiAdd,
   apiRemove,
+  sendOtp,
+  verifyOtp,
+  apiAuthStatus,
+  apiSetup,
 } from "../lib/backend";
 
 const FIELD =
@@ -56,6 +57,9 @@ export function Admin() {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [setupKey, setSetupKey] = useState("");
+  const [stage, setStage] = useState<"password" | "otp">("password");
+  const [otp, setOtp] = useState("");
+  const [otpNote, setOtpNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -72,15 +76,16 @@ export function Admin() {
   const [cloud, setCloud] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setHasPassword(Boolean(getStoredHash()));
     setItems(getLibraryItems());
     setHidden(loadHidden());
 
-    /* If a MongoDB backend is deployed, sync its items into the library. */
+    /* Auth and library both live in MongoDB. */
     (async () => {
       const online = await probeBackend(true);
       setCloud(online);
       if (!online) return;
+      const configured = await apiAuthStatus();
+      if (configured !== null) setHasPassword(configured);
       const remote = await apiList();
       if (remote.length) {
         const local = loadCustom();
@@ -111,27 +116,26 @@ export function Admin() {
     setBusy(true);
     setError("");
     try {
+      if (!cloud) {
+        setError(
+          "Cannot reach the database. Set API_BASE in src/data.ts to your Render URL.",
+        );
+        return;
+      }
+
       if (needEntry) {
-        let ok = false;
-        if (embedded) ok = await verifyAgainst(pw, embedded);
-        if (!ok && hasPassword) {
-          ok = (await hashPassword(pw)) === getStoredHash();
-        }
-        if (!ok && cloud) {
-          const t = await apiLogin(pw);
-          if (t) {
-            setToken(t);
-            ok = true;
-          }
-        }
-        if (!ok) {
+        /* sign in against MongoDB */
+        const t = await apiLogin(pw);
+        if (!t) {
           setError("Wrong password. Try again.");
           return;
         }
-      } else if (canSetup) {
+        setToken(t);
+      } else {
+        /* first run — create the password in MongoDB */
         if (ADMIN_SETUP_KEY.trim() === "AFM-SETUP-ONLY-YOU-KNOW") {
           setError(
-            "Panel not configured yet — add the GitHub secret VITE_ADMIN_PASSWORD_SHA256 and redeploy.",
+            "Set ADMIN_SETUP_KEY in src/data.ts and in your Render environment first.",
           );
           return;
         }
@@ -140,22 +144,69 @@ export function Admin() {
           return;
         }
         if (passwordStrength(pw) < 3) {
-          setError("Use at least 12 characters with capitals, numbers and a symbol.");
+          setError(
+            "Use at least 12 characters with capitals, numbers and a symbol.",
+          );
           return;
         }
         if (pw !== pw2) {
           setError("The two passwords do not match.");
           return;
         }
-        setStoredHash(await hashPassword(pw));
+        const t = await apiSetup(setupKey.trim(), pw);
+        if (!t) {
+          setError("Could not create the password — please try again.");
+          return;
+        }
+        setToken(t);
         setHasPassword(true);
       }
-      setUnlocked(true);
       setPw("");
       setPw2("");
+
+      /* second factor — a 6-digit code sent to the admin email */
+      if (OTP_ENABLED) {
+        setOtpNote("Sending…");
+        setStage("otp");
+        const sent = await sendOtp(ADMIN_EMAIL);
+        setOtpNote(
+          sent === "failed"
+            ? "Could not send the code — check the email settings and try again."
+            : "",
+        );
+      } else {
+        setUnlocked(true);
+      }
     } finally {
       setBusy(false);
     }
+  };
+
+  const submitOtp = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    setBusy(true);
+    setOtpNote("");
+    try {
+      const t = await verifyOtp(ADMIN_EMAIL, otp);
+      if (!t) {
+        setOtpNote("That code is not right or has expired.");
+        return;
+      }
+      if (t !== "local-session") setToken(t);
+      setUnlocked(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    setOtpNote("Sending…");
+    const r = await sendOtp(ADMIN_EMAIL);
+    setOtpNote(
+      r === "failed"
+        ? "Could not send the code — check the email settings."
+        : "A new code has been sent ✓",
+    );
   };
 
   /* ---- media sources ---- */
@@ -257,11 +308,77 @@ export function Admin() {
 
   const strength = passwordStrength(pw);
 
-  /* A hash embedded in the code locks the panel: no one can set a new
-     password from the website. Otherwise the one-time setup needs a key. */
-  const embedded = ADMIN_PASSWORD_SHA256.trim();
-  const needEntry = embedded.length > 0 || hasPassword;
-  const canSetup = embedded.length === 0 && !hasPassword;
+  /* Authentication is MongoDB-only: the password is stored in the database
+     and is never part of the code, the repository or GitHub Secrets. */
+  const needEntry = hasPassword;
+
+  /* ================= OTP STEP ================= */
+  if (!unlocked && stage === "otp") {
+    return (
+      <section id="admin" className="bg-ink px-4 py-20 text-paper sm:px-7 sm:py-24">
+        <div className="mx-auto max-w-xl">
+          <div className="u-label text-signal">Step 2 of 2 · verification</div>
+          <h2 className="u-display mt-5 text-[clamp(2.1rem,6vw,3.4rem)] text-paper">
+            Check your
+            <span className="u-voice ml-3 lowercase text-signal">email.</span>
+          </h2>
+          <p className="mt-6 text-[15px] leading-[1.7] text-paper/70">
+            A 6-digit code was sent to{" "}
+            <span className="text-paper">{ADMIN_EMAIL}</span>. It expires in 10
+            minutes.
+          </p>
+
+          <form
+            onSubmit={submitOtp}
+            className="mt-8 border border-paper/25 p-6 sm:p-8"
+          >
+            <label className="u-label block text-paper/60" htmlFor="a-otp">
+              Verification code
+            </label>
+            <input
+              id="a-otp"
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              placeholder="123456"
+              className="u-num mt-3 w-full border-b border-paper/30 bg-transparent py-3 text-[26px] tracking-[0.45em] text-paper placeholder:text-paper/25 focus:border-signal focus:outline-none"
+            />
+
+            {otpNote && <div className="u-label mt-5 text-signal">{otpNote}</div>}
+
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <button
+                type="submit"
+                disabled={busy || otp.length < 6}
+                className="u-label-lg flex items-center gap-3 bg-signal px-6 py-4 text-[#0B1013] transition-colors hover:bg-paper hover:text-ink disabled:opacity-50"
+              >
+                Verify &amp; open <span aria-hidden="true">→</span>
+              </button>
+              <button
+                type="button"
+                onClick={resendOtp}
+                className="u-label border border-paper/30 px-4 py-3 text-paper transition-colors hover:bg-paper hover:text-ink"
+              >
+                Send a new code
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStage("password");
+                  setOtp("");
+                  setOtpNote("");
+                }}
+                className="u-label border border-paper/30 px-4 py-3 text-paper transition-colors hover:bg-paper hover:text-ink"
+              >
+                ← Back
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    );
+  }
 
   /* ================= LOCKED ================= */
   if (!unlocked) {

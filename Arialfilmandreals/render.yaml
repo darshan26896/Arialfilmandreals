@@ -1,0 +1,37 @@
+# Render blueprint — connect your repo to Render and it picks this up.
+# Dashboard: New → Blueprint → select this repository.
+
+services:
+  - type: web
+    name: arialfilmandreals
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: node server.js
+    healthCheckPath: /api/library
+
+    envVars:
+      # --- database (MongoDB Atlas) ---
+      - key: MONGODB_URI
+        sync: false # paste your mongodb+srv://… connection string
+      - key: MONGODB_DB
+        value: arialfilmandreals
+
+      # --- admin access ---
+      - key: ADMIN_SECRET
+        generateValue: true # signed session tokens
+      - key: ADMIN_PASSWORD_SHA256
+        sync: false # sha-256 of the admin password
+      - key: ADMIN_EMAIL
+        sync: false # where OTP codes are sent
+      - key: ALLOW_SETUP
+        value: "false"
+
+      # --- email delivery for OTP codes (Resend, free tier) ---
+      - key: RESEND_API_KEY
+        sync: false
+      - key: OTP_FROM
+        value: onboarding@resend.dev
+
+      - key: NODE_VERSION
+        value: 20

@@ -43,11 +43,23 @@ const ENV: Record<string, string | undefined> =
   (import.meta as unknown as { env?: Record<string, string | undefined> })
     .env ?? {};
 
-export const ADMIN_PASSWORD_SHA256 =
-  ENV.VITE_ADMIN_PASSWORD_SHA256 ?? "";
+/* Auth is handled by MongoDB only — the password is stored in the database
+ * and never appears in the code, the repository or GitHub Secrets. */
 
-export const ADMIN_SETUP_KEY =
-  ENV.VITE_ADMIN_SETUP_KEY ?? "AFM-SETUP-ONLY-YOU-KNOW";
+/* ---- OPTION B: site on GitHub Pages, API on Render ----
+ * Paste your Render service URL below (no trailing slash). Example:
+ *   export const API_BASE = "https://arialfilmandreals.onrender.com";
+ * Leave it as "" when the site and the API are served from the same domain. */
+export const API_BASE = "";
+
+/* Only needed for the one-time password setup — it must match the
+ * ADMIN_SETUP_KEY set in your Render environment variables. */
+export const ADMIN_SETUP_KEY = "AFM-SETUP-ONLY-YOU-KNOW";
+
+/* Two-step login: a 6-digit code is emailed after the password. Set the
+ * GitHub secret VITE_OTP_ENABLED to "false" to switch it off. */
+export const OTP_ENABLED = ENV.VITE_OTP_ENABLED !== "false";
+export const ADMIN_EMAIL = ENV.VITE_ADMIN_EMAIL ?? STUDIO.email;
 
 export const NAV = [
   { id: "work", label: "Work" },
