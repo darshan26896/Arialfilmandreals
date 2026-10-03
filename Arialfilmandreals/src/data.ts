@@ -43,23 +43,59 @@ const ENV: Record<string, string | undefined> =
   (import.meta as unknown as { env?: Record<string, string | undefined> })
     .env ?? {};
 
-/* Auth is handled by MongoDB only — the password is stored in the database
- * and never appears in the code, the repository or GitHub Secrets. */
+/* ------------------------------------------------------------------ *
+ * RENDER BACKEND
+ *
+ * Frontend: GitHub Pages
+ * Backend: Render
+ *
+ * Example:
+ * https://arialfilmandreals.onrender.com
+ * ------------------------------------------------------------------ */
 
-/* ---- OPTION B: site on GitHub Pages, API on Render ----
- * Paste your Render service URL below (no trailing slash). Example:
- *   export const API_BASE = "https://arialfilmandreals.onrender.com";
- * Leave it as "" when the site and the API are served from the same domain. */
-export const API_BASE = "";
+export const API_BASE =
+  ENV.VITE_API_BASE ||
+  "https://arialfilmandreals.onrender.com";
 
-/* Only needed for the one-time password setup — it must match the
- * ADMIN_SETUP_KEY set in your Render environment variables. */
-export const ADMIN_SETUP_KEY = "AFM-SETUP-ONLY-YOU-KNOW";
+/* ------------------------------------------------------------------ *
+ * ADMIN AUTHENTICATION
+ *
+ * IMPORTANT:
+ *
+ * Do NOT put ADMIN_PASSWORD_SHA256 or ADMIN_SECRET here.
+ *
+ * These must remain on the Render backend:
+ *
+ * ADMIN_PASSWORD_SHA256
+ * ADMIN_SECRET
+ * MONGODB_URI
+ * MONGODB_DB
+ *
+ * The frontend should authenticate through the Render API.
+ * ------------------------------------------------------------------ */
 
-/* Two-step login: a 6-digit code is emailed after the password. Set the
- * GitHub secret VITE_OTP_ENABLED to "false" to switch it off. */
-export const OTP_ENABLED = ENV.VITE_OTP_ENABLED !== "false";
-export const ADMIN_EMAIL = ENV.VITE_ADMIN_EMAIL ?? STUDIO.email;
+/*
+ * Only expose a setup key if your existing frontend setup flow
+ * specifically requires it.
+ *
+ * Do NOT put ADMIN_SECRET here.
+ */
+export const ADMIN_SETUP_KEY =
+  ENV.VITE_ADMIN_SETUP_KEY || "";
+
+/* ------------------------------------------------------------------ *
+ * OTP
+ * ------------------------------------------------------------------ */
+
+export const OTP_ENABLED =
+  ENV.VITE_OTP_ENABLED !== "false";
+
+export const ADMIN_EMAIL =
+  ENV.VITE_ADMIN_EMAIL || STUDIO.email;
+
+/* ------------------------------------------------------------------ *
+ * NAVIGATION
+ * ------------------------------------------------------------------ */
 
 export const NAV = [
   { id: "work", label: "Work" },
