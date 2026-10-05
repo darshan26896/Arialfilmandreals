@@ -1,0 +1,9 @@
+# The backend is deployed separately on Render (Root Directory: server)
+server
+render.yaml
+
+# Local / docs
+MEDIA-GUIDE.md
+RENDER.md
+.git
+.github

@@ -46,14 +46,11 @@ const ENV: Record<string, string | undefined> =
 /* Auth is handled by MongoDB only — the password is stored in the database
  * and never appears in the code, the repository or GitHub Secrets. */
 
-/* ---- FRONTEND on Vercel · BACKEND on Render ----
- * Give the site your Render URL in either of two ways:
- *   1. paste it below, e.g. "https://arialfilmandreals.onrender.com"
- *   2. or set VITE_API_BASE in Vercel → Settings → Environment Variables
- * Leave both empty when the site and the API share a domain. */
-const RENDER_URL = "";
-
-export const API_BASE = ENV.VITE_API_BASE || RENDER_URL;
+/* ---- OPTION B: site on GitHub Pages, API on Render ----
+ * Paste your Render service URL below (no trailing slash). Example:
+ *   export const API_BASE = "https://arialfilmandreals.onrender.com";
+ * Leave it as "" when the site and the API are served from the same domain. */
+export const API_BASE = "";
 
 /* Only needed for the one-time password setup — it must match the
  * ADMIN_SETUP_KEY set in your Render environment variables. */

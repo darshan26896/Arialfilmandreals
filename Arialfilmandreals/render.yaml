@@ -1,14 +1,15 @@
-# Render blueprint — connect your repo to Render and it picks this up.
-# Dashboard: New → Blueprint → select this repository.
+# Render blueprint — the backend lives in its own folder: server/
+# Deploy: Render → New → Blueprint → select this repository.
 
 services:
   - type: web
-    name: arialfilmandreals
+    name: arialfilmandreals-api
     runtime: node
+    rootDir: server
     plan: free
-    buildCommand: npm ci && npm run build
-    startCommand: node server.js
-    healthCheckPath: /api/library
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
 
     envVars:
       # --- database (MongoDB Atlas) ---
@@ -17,17 +18,15 @@ services:
       - key: MONGODB_DB
         value: arialfilmandreals
 
-      # --- admin access ---
+      # --- admin access (MongoDB-only auth) ---
       - key: ADMIN_SECRET
-        generateValue: true # signed session tokens
-      - key: ADMIN_PASSWORD_SHA256
-        sync: false # sha-256 of the admin password
+        generateValue: true # signs session tokens
+      - key: ADMIN_SETUP_KEY
+        sync: false # required for the one-time password setup
       - key: ADMIN_EMAIL
         sync: false # where OTP codes are sent
-      - key: ALLOW_SETUP
-        value: "false"
 
-      # --- email delivery for OTP codes (Resend, free tier) ---
+      # --- email delivery for login codes (Resend, free tier) ---
       - key: RESEND_API_KEY
         sync: false
       - key: OTP_FROM

@@ -1,23 +1,23 @@
 {
-  "name": "arialfilmandreals",
+  "name": "react-vite-tailwind",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://darshan26896.github.io/Arialfilmandreals/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@playwright/test": "^1.63.0",
     "clsx": "2.1.1",
-    "framer-motion": "^13.4.4",
-    "lucide-react": "^1.48.0",
+    "lucide-react": "^1.46.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "tailwind-merge": "3.4.0"
+    "tailwind-merge": "3.4.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.17",
