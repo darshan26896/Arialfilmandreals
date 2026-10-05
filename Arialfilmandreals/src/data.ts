@@ -51,13 +51,13 @@ const ENV: Record<string, string | undefined> =
  *   1. paste it below, e.g. "https://arialfilmandreals.onrender.com"
  *   2. or set VITE_API_BASE in Vercel → Settings → Environment Variables
  * Leave both empty when the site and the API share a domain. */
-const RENDER_URL = "";
+const RENDER_URL = "https://arialfilmandreals.onrender.com";
 
 export const API_BASE = ENV.VITE_API_BASE || RENDER_URL;
 
 /* Only needed for the one-time password setup — it must match the
  * ADMIN_SETUP_KEY set in your Render environment variables. */
-export const ADMIN_SETUP_KEY = "AFM-SETUP-ONLY-YOU-KNOW";
+export const ADMIN_SETUP_KEY = "123456789";
 
 /* Two-step login: a 6-digit code is emailed after the password. Set the
  * GitHub secret VITE_OTP_ENABLED to "false" to switch it off. */
