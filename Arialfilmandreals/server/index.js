@@ -48,3 +48,11 @@ app.all("/api/auth", (req, res) => void authHandler(req, res));
 app.all("/api/library", (req, res) => void libraryHandler(req, res));
 app.all("/api/otp", (req, res) => void otpHandler(req, res));
 
+/* If the website build sits in ../dist, serve it too (single-service mode). */
+const distDir = path.join(__dirname, "..", "dist");
+app.use(express.static(distDir));
+app.use((_req, res) => res.sendFile(path.join(distDir, "index.html")));
+
+app.listen(PORT, () => {
+  console.log(`arialfilmandreals API listening on port ${PORT}`);
+});
