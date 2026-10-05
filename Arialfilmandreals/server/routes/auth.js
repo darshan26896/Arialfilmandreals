@@ -21,53 +21,131 @@ const sha = (value) =>
 const safeEqual = (a, b) => {
   const ba = Buffer.from(String(a));
   const bb = Buffer.from(String(b));
+
   return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
 };
 
 export function issueToken() {
-  const secret = process.env.ADMIN_SECRET || "set-a-long-random-admin-secret";
+  const secret =
+    process.env.ADMIN_SECRET || "set-a-long-random-admin-secret";
+
   const exp = Date.now() + 12 * 60 * 60 * 1000;
-  const sig = crypto.createHmac("sha256", secret).update(String(exp)).digest("hex");
+
+  const sig = crypto
+    .createHmac("sha256", secret)
+    .update(String(exp))
+    .digest("hex");
+
   return `${exp}.${sig}`;
 }
 
 export function verifyToken(token) {
   if (!token) return false;
+
   const [exp, sig] = String(token).split(".");
+
   if (!exp || !sig) return false;
   if (Number(exp) < Date.now()) return false;
-  const secret = process.env.ADMIN_SECRET || "set-a-long-random-admin-secret";
+
+  const secret =
+    process.env.ADMIN_SECRET || "set-a-long-random-admin-secret";
+
   const expected = crypto
     .createHmac("sha256", secret)
     .update(String(exp))
     .digest("hex");
+
   return safeEqual(sig, expected);
 }
 
 export default async function handler(req, res) {
   if (handleOptions(req, res)) return;
-  if (req.method !== "POST") return json(res, 405, { error: "Method not allowed" });
+
+  if (req.method !== "POST") {
+    return json(res, 405, {
+      error: "Method not allowed",
+    });
+  }
 
   const body = req.body || {};
-  const action = body.action || "login";
+
+  console.log("AUTH REQUEST BODY:", body);
+  console.log("AUTH ACTION:", body.action);
+
+  const action = String(body.action || "").trim().toLowerCase();
+
+  if (!action) {
+    return json(res, 400, {
+      error: "action is required",
+      allowedActions: ["status", "setup", "change", "login"],
+    });
+  }
+
+  if (!["status", "setup", "change", "login"].includes(action)) {
+    return json(res, 400, {
+      error: "Invalid action",
+      allowedActions: ["status", "setup", "change", "login"],
+    });
+  }
 
   try {
     const admin = await getCollection("admin");
-    const doc = await admin.findOne({ _id: "password" });
 
+    const doc = await admin.findOne({
+      _id: "password",
+    });
+
+    /*
+     * STATUS
+     *
+     * Checks whether an admin password has already
+     * been created in MongoDB.
+     */
     if (action === "status") {
-      return json(res, 200, { ok: true, configured: Boolean(doc) });
+      return json(res, 200, {
+        ok: true,
+        configured: Boolean(doc),
+      });
     }
 
+    /*
+     * FIRST-TIME SETUP
+     */
     if (action === "setup") {
-      if (doc) return json(res, 409, { error: "A password is already configured" });
+      if (doc) {
+        return json(res, 409, {
+          error: "A password is already configured",
+        });
+      }
 
       const key = process.env.ADMIN_SETUP_KEY;
-      if (!key || !safeEqual(String(body.setupKey || ""), String(key))) {
-        return json(res, 403, { error: "Setup key required" });
+
+      if (!key) {
+        console.error("ADMIN_SETUP_KEY is not configured");
+
+        return json(res, 500, {
+          error: "ADMIN_SETUP_KEY is not configured on the server",
+        });
       }
-      if (!body.password || String(body.password).length < 12) {
-        return json(res, 400, { error: "Password must be at least 12 characters" });
+
+      if (
+        !safeEqual(
+          String(body.setupKey || ""),
+          String(key),
+        )
+      ) {
+        return json(res, 403, {
+          error: "Setup key required",
+        });
+      }
+
+      if (
+        !body.password ||
+        String(body.password).length < 12
+      ) {
+        return json(res, 400, {
+          error: "Password must be at least 12 characters",
+        });
       }
 
       await admin.insertOne({
@@ -75,30 +153,91 @@ export default async function handler(req, res) {
         hash: sha(body.password),
         createdAt: Date.now(),
       });
-      return json(res, 200, { ok: true, token: issueToken() });
+
+      return json(res, 200, {
+        ok: true,
+        token: issueToken(),
+      });
     }
 
+    /*
+     * CHANGE PASSWORD
+     */
     if (action === "change") {
-      if (!doc) return json(res, 409, { error: "Not configured" });
-      if (!safeEqual(sha(body.current || ""), doc.hash)) {
-        return json(res, 401, { error: "Current password is wrong" });
+      if (!doc) {
+        return json(res, 409, {
+          error: "Not configured",
+        });
       }
-      if (!body.password || String(body.password).length < 12) {
-        return json(res, 400, { error: "Password must be at least 12 characters" });
+
+      if (
+        !safeEqual(
+          sha(body.current || ""),
+          doc.hash,
+        )
+      ) {
+        return json(res, 401, {
+          error: "Current password is wrong",
+        });
       }
+
+      if (
+        !body.password ||
+        String(body.password).length < 12
+      ) {
+        return json(res, 400, {
+          error: "Password must be at least 12 characters",
+        });
+      }
+
       await admin.updateOne(
-        { _id: "password" },
-        { $set: { hash: sha(body.password), changedAt: Date.now() } },
+        {
+          _id: "password",
+        },
+        {
+          $set: {
+            hash: sha(body.password),
+            changedAt: Date.now(),
+          },
+        },
       );
-      return json(res, 200, { ok: true, token: issueToken() });
+
+      return json(res, 200, {
+        ok: true,
+        token: issueToken(),
+      });
     }
 
-    if (!doc) return json(res, 409, { error: "Not configured yet" });
-    if (!safeEqual(sha(body.password || ""), doc.hash)) {
-      return json(res, 401, { error: "Wrong password" });
+    /*
+     * LOGIN
+     */
+    if (!doc) {
+      return json(res, 409, {
+        error: "Not configured yet",
+      });
     }
-    return json(res, 200, { ok: true, token: issueToken() });
+
+    if (
+      !safeEqual(
+        sha(body.password || ""),
+        doc.hash,
+      )
+    ) {
+      return json(res, 401, {
+        error: "Wrong password",
+      });
+    }
+
+    return json(res, 200, {
+      ok: true,
+      token: issueToken(),
+    });
   } catch (err) {
-    return json(res, 500, { error: "Database error", detail: String(err) });
+    console.error("Authentication error:", err);
+
+    return json(res, 500, {
+      error: "Database error",
+      detail: String(err),
+    });
   }
 }
