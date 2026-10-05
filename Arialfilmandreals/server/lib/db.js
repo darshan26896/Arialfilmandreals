@@ -4,7 +4,7 @@ import { MongoClient } from "mongodb";
  * Shared MongoDB connection.
  *
  * Required environment variables:
- *   MONGODB_URI      mongodb+srv://ubuntu:rfZtKIWUWgXTOzEG@cluster0.9tuabok.mongodb.net/
+ *   MONGODB_URI      mongodb+srv://<db_username>:<db_password>@cluster0.9tuabok.mongodb.net/?appName=Cluster0
  *   MONGODB_DB       optional, defaults to "arialfilmandreals"
  */
 
