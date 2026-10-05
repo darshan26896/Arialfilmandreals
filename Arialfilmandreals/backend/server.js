@@ -1,19 +1,3 @@
-/**
- * Arialfilmandreals Backend
- *
- * Render Web Service
- *
- * API:
- *   POST   /api/auth
- *   GET    /api/library
- *   POST   /api/library
- *   DELETE /api/library
- *   POST   /api/otp
- *
- * Health:
- *   GET /health
- */
-
 import express from "express";
 
 import authHandler from "./api/auth.js";
@@ -24,16 +8,15 @@ const app = express();
 
 const PORT = Number(process.env.PORT) || 3000;
 
-/* -------------------------------------------------------
-   CORS
-------------------------------------------------------- */
-
+/* CORS */
 app.use((req, res, next) => {
-  const frontendUrl = process.env.FRONTEND_URL;
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    "https://darshan26896.github.io";
 
   res.setHeader(
     "Access-Control-Allow-Origin",
-    frontendUrl || "*"
+    frontendUrl
   );
 
   res.setHeader(
@@ -53,20 +36,14 @@ app.use((req, res, next) => {
   next();
 });
 
-/* -------------------------------------------------------
-   JSON body parser
-------------------------------------------------------- */
-
+/* JSON */
 app.use(
   express.json({
     limit: "1mb"
   })
 );
 
-/* -------------------------------------------------------
-   Health check
-------------------------------------------------------- */
-
+/* Health check */
 app.get("/health", (_req, res) => {
   res.status(200).json({
     success: true,
@@ -75,12 +52,11 @@ app.get("/health", (_req, res) => {
   });
 });
 
-/* -------------------------------------------------------
-   API routes
-------------------------------------------------------- */
-
-app.all("/api/auth", (req, res) => {
-  Promise.resolve(authHandler(req, res)).catch((error) => {
+/* Authentication */
+app.all("/api/auth", async (req, res) => {
+  try {
+    await authHandler(req, res);
+  } catch (error) {
     console.error("AUTH ERROR:", error);
 
     if (!res.headersSent) {
@@ -89,11 +65,14 @@ app.all("/api/auth", (req, res) => {
         error: "Authentication server error"
       });
     }
-  });
+  }
 });
 
-app.all("/api/library", (req, res) => {
-  Promise.resolve(libraryHandler(req, res)).catch((error) => {
+/* Library */
+app.all("/api/library", async (req, res) => {
+  try {
+    await libraryHandler(req, res);
+  } catch (error) {
     console.error("LIBRARY ERROR:", error);
 
     if (!res.headersSent) {
@@ -102,11 +81,14 @@ app.all("/api/library", (req, res) => {
         error: "Library server error"
       });
     }
-  });
+  }
 });
 
-app.all("/api/otp", (req, res) => {
-  Promise.resolve(otpHandler(req, res)).catch((error) => {
+/* OTP */
+app.all("/api/otp", async (req, res) => {
+  try {
+    await otpHandler(req, res);
+  } catch (error) {
     console.error("OTP ERROR:", error);
 
     if (!res.headersSent) {
@@ -115,13 +97,10 @@ app.all("/api/otp", (req, res) => {
         error: "OTP server error"
       });
     }
-  });
+  }
 });
 
-/* -------------------------------------------------------
-   Unknown API route
-------------------------------------------------------- */
-
+/* Unknown API */
 app.use("/api", (_req, res) => {
   res.status(404).json({
     success: false,
@@ -129,10 +108,7 @@ app.use("/api", (_req, res) => {
   });
 });
 
-/* -------------------------------------------------------
-   Global error handler
-------------------------------------------------------- */
-
+/* Global error */
 app.use((error, _req, res, _next) => {
   console.error("SERVER ERROR:", error);
 
@@ -144,13 +120,9 @@ app.use((error, _req, res, _next) => {
   }
 });
 
-/* -------------------------------------------------------
-   Start server
-------------------------------------------------------- */
-
+/* Start */
 app.listen(PORT, "0.0.0.0", () => {
   console.log(
     `Arialfilmandreals backend running on port ${PORT}`
   );
-  console.log(`Health check: /health`);
 });
