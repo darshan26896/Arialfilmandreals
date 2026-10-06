@@ -2,9 +2,9 @@ export const STUDIO = {
   name: "Arialfilmandreals",
   full: "Aerial Film & Reel Studio",
   base: "Sector 23, Gandhinagar, Gujarat 382023",
-  phone: "+91 98250 38200",
-  phoneHref: "tel:+919825038200",
-  whatsapp: "https://wa.me/919825038200",
+  phone: "+91 9429368879",
+  phoneHref: "tel:+9429368879",
+  whatsapp: "https://wa.me/9429368879",
   email: "joysolanki055@gmail.com",
   notify: "joysolanki055@gmail.com",
   instagram: "@Arialfilmandreals",
@@ -57,7 +57,7 @@ export const API_BASE = ENV.VITE_API_BASE || RENDER_URL;
 
 /* Only needed for the one-time password setup — it must match the
  * ADMIN_SETUP_KEY set in your Render environment variables. */
-export const ADMIN_SETUP_KEY = "123456789";
+export const ADMIN_SETUP_KEY = "0000123456789";
 
 /* Two-step login: a 6-digit code is emailed after the password. Set the
  * GitHub secret VITE_OTP_ENABLED to "false" to switch it off. */
