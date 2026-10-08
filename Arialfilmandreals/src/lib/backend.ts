@@ -32,7 +32,10 @@ export async function apiLogin(password: string): Promise<string | null> {
     const res = await fetch(AUTH, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({
+        action: "login",
+        password,
+       }),
     });
     const data = await res.json();
     return res.ok && data && data.token ? (data.token as string) : null;
