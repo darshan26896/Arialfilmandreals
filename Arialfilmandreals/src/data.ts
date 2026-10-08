@@ -467,7 +467,7 @@ export const LIBRARY: LibraryItem[] = [
     place: "5-star hotel, Udaipur, Rajasthan",
     meta: "Still · 12 MP · DJI Neo",
     img: "https://www.dropbox.com/scl/fi/ix4bqiifvurlhjvqaz5x6/OIP.webp?rlkey=o2ttje7u764l7a2tpkbx2bxkl&st=gros5hq4&dl=0",
-    video: "https://www.dropbox.com/scl/fi/kf9weaws8de7z0iwxv6pf/lv_0_20260929234542.mp4?rlkey=pyspxrynzhapilekypjcll3gy&st=8g9xub6e&dl=0",
+    video: "https://www.dropbox.com/scl/fi/ss0ijkumq1jsvc07nex3e/lv_0_20261009051310.mp4?rlkey=3f7thdyrv6rxvfatuya3egkrj&st=m66ltyt9&dl=0",
     tags: ["photo", "video"],
     ratio: "aspect-[4/3]",
   },
