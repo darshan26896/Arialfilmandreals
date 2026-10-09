@@ -1,4 +1,3 @@
-```javascript
 import crypto from "node:crypto";
 import { getCollection, json, handleOptions } from "../lib/db.js";
 import { verifyToken } from "./auth.js";
@@ -232,4 +231,3 @@ export default async function handler(req, res) {
     });
   }
 }
-```
