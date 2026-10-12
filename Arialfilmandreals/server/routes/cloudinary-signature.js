@@ -1,7 +1,8 @@
 
 import express from "express";
 import crypto from "node:crypto";
-import { verifyToken } from "../../src/api/auth.js";
+import { verifyToken } from "./auth.js";
+
 
 const router = express.Router();
 
