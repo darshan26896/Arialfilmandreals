@@ -22,6 +22,7 @@ import { getCollection } from "./lib/db.js";
 import authHandler from "./routes/auth.js";
 import libraryHandler from "./routes/library.js";
 import otpHandler from "./routes/otp.js";
+import cloudinarySignatureHandler from "./routes/cloudinary-signature.js";
 
 const PORT = process.env.PORT || 3000;
 
@@ -136,6 +137,11 @@ app.all("/api/otp", async (req, res) => {
   }
 });
 
+app.use(
+  "/api/cloudinary-signature",
+  cloudinarySignatureHandler
+);
+
 /* Unknown API route */
 app.use((req, res) => {
   res.status(404).json({
@@ -161,4 +167,3 @@ app.use((err, _req, res, _next) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`arialfilmandreals API listening on port ${PORT}`);
 });
-
