@@ -478,7 +478,7 @@ export const LIBRARY: LibraryItem[] = [
     place: "Nanda automobiles gandhinagar",
     meta: "Still · 12 MP · DJI Neo",
     img: "https://res.cloudinary.com/iuve16au/image/upload/v1791848018/OIP.webp",
-    video: "https://player.cloudinary.com/embed/?cloud_name=iuve16au&public_id=lv_0_20261009051310",
+    video: "https://player.cloudinary.com/embed/?cloud_name=iuve16au&public_id=lv_0_20261009051310,
     tags: ["photo", "video"],
     ratio: "aspect-[4/3]",
   },
