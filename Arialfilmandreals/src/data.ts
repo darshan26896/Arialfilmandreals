@@ -203,7 +203,7 @@ export const RATES = [
   {
     code: "A",
     name: "Reel Drop",
-    price: "2,999",
+    price: "1,999",
     note: "Solo creators, small cafés, one-day listings",
     items: [
       "1 location · up to 3 hours on site",
@@ -216,7 +216,7 @@ export const RATES = [
   {
     code: "B",
     name: "Aerial Half-Day",
-    price: "6,999",
+    price: "4,999",
     note: "Most booked — villas, sangeet, brand shoots",
     items: [
       "4 hours · up to 2 locations in Gandhinagar",
@@ -231,7 +231,7 @@ export const RATES = [
   {
     code: "C",
     name: "Full Production",
-    price: "9,999",
+    price: "7,999",
     note: "Weddings, developers, heritage & tourism films",
     items: [
       "Full day · up to 3 locations · 2-person crew",
@@ -244,7 +244,7 @@ export const RATES = [
   {
     code: "D",
     name: "Monthly Retainer",
-    price: "8,999",
+    price: "6,999",
     note: "Per month · cafés, gyms, salons, realtors",
     items: [
       "8 reels every month, shot in 2 visits",
