@@ -159,6 +159,39 @@ export async function verifyOtp(_email: string, code: string): Promise<string | 
   }
 }
 
+
+/** Upload a selected image/video to Cloudinary using a short-lived server signature. */
+export async function apiUploadMedia(file: File): Promise<string | null> {
+  const resourceType = file.type.startsWith("video/") ? "video" : "image";
+  try {
+    const signatureRes = await fetch(`${ROOT}/api/cloudinary-signature`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resourceType }),
+    });
+    const signatureData = await signatureRes.json();
+    if (!signatureRes.ok || !signatureData?.ok) return null;
+
+    const uploadBody = new FormData();
+    uploadBody.append("file", file);
+    uploadBody.append("api_key", signatureData.apiKey);
+    uploadBody.append("timestamp", String(signatureData.timestamp));
+    uploadBody.append("folder", signatureData.folder);
+    uploadBody.append("signature", signatureData.signature);
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(signatureData.cloudName)}/${resourceType}/upload`,
+      { method: "POST", body: uploadBody },
+    );
+    const uploadData = await uploadRes.json();
+    if (!uploadRes.ok || !uploadData?.secure_url) return null;
+    return String(uploadData.secure_url);
+  } catch {
+    return null;
+  }
+}
+
 export async function apiRemove(_sessionMarker: string, id: string): Promise<boolean> {
   try {
     const res = await fetch(ENDPOINT, {

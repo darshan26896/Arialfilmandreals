@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   FILTERS,
   LIBRARY,
@@ -14,8 +14,6 @@ import {
   loadHidden,
   saveHidden,
   getLibraryItems,
-  formatEntry,
-  exportable,
   type CustomItem,
 } from "../lib/admin";
 import {
@@ -24,6 +22,7 @@ import {
   apiList,
   apiAdd,
   apiRemove,
+  apiUploadMedia,
   sendOtp,
   verifyOtp,
   apiAuthStatus,
@@ -65,11 +64,11 @@ export function Admin() {
 
   /* ---- library state ---- */
   const [items, setItems] = useState<CustomItem[]>([]);
+  const [databaseIds, setDatabaseIds] = useState<string[]>([]);
   const [hidden, setHidden] = useState<string[]>([]);
   const [form, setForm] = useState<CustomItem>(blank);
   const [source, setSource] = useState<"link" | "local">("link");
   const [note, setNote] = useState("");
-  const [copied, setCopied] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [token, setToken] = useState<string | null>(null);
@@ -94,15 +93,14 @@ export function Admin() {
       const configured = await apiAuthStatus();
       if (configured !== null) setHasPassword(configured);
       const remote = await apiList();
-      if (remote.length) {
-        const local = loadCustom();
-        const merged = [
-          ...remote,
-          ...local.filter((l) => !remote.some((r) => r.id === l.id)),
-        ];
-        saveCustom(merged);
-        setItems(getLibraryItems());
-      }
+      const remoteIds = remote.map((item) => item.id);
+      setDatabaseIds(remoteIds);
+      // MongoDB items are the managed entries. Keep the original sample library
+      // visible, but never let a local copy shadow a database record.
+      setItems([
+        ...remote,
+        ...getLibraryItems().filter((item) => !remoteIds.includes(item.id)),
+      ]);
     })();
   }, []);
 
@@ -223,101 +221,171 @@ export function Admin() {
     }
   };
 
-  /* ---- media sources ---- */
-  const onFile = (e: { target: { files: FileList | null } }) => {
+  /* ---- media sources: upload selected files to Cloudinary for permanent URLs ---- */
+  const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const input = e.target;
     const f = e.target.files?.[0];
     if (!f) return;
-    const isVideo = f.type.startsWith("video/");
-    const big = f.size > 1_500_000;
-
-    if (isVideo) {
-      const url = URL.createObjectURL(f);
-      setForm((s) => ({
-        ...s,
-        kind: "video",
-        video: url,
-        sessionOnly: true,
-        meta: s.meta || "00:20 · 4K/30 · DJI Neo",
-      }));
-      setNote(
-        "Local video previews now, but a browser cannot keep it after a refresh — paste a link (Dropbox/Drive) for a clip visitors will always see.",
-      );
+    if (!token) {
+      setNote("Log in to the admin panel before uploading media.");
+      input.value = "";
+      return;
+    }
+    if (!f.type.startsWith("image/") && !f.type.startsWith("video/")) {
+      setNote("Choose an image or video file.");
+      input.value = "";
+      return;
+    }
+    if (f.size > 100 * 1024 * 1024) {
+      setNote("This file is over 100 MB. Please choose a smaller file.");
+      input.value = "";
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = String(reader.result);
-      setForm((s) => ({
-        ...s,
-        img: url,
-        sessionOnly: big || url.length > 900_000,
-      }));
-      setNote(
-        big
-          ? "Large photo — it previews now but is not saved after a refresh. Upload it to public/images and use a link instead."
-          : "Photo loaded from your computer ✓",
-      );
-    };
-    reader.readAsDataURL(f);
+    const isVideo = f.type.startsWith("video/");
+    setBusy(true);
+    setNote(`Uploading ${isVideo ? "video" : "image"} to Cloudinary…`);
+    try {
+      const url = await apiUploadMedia(f);
+      if (!url) {
+        setNote("Upload failed. Check that CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET are configured in Render, and that you are logged in.");
+        return;
+      }
+      if (isVideo) {
+        setForm((current) => ({
+          ...current,
+          kind: "video",
+          video: url,
+          sessionOnly: false,
+          meta: current.meta || "00:20 · 4K/30 · DJI Neo",
+        }));
+      } else {
+        setForm((current) => ({ ...current, img: url, sessionOnly: false }));
+      }
+      setNote(`${isVideo ? "Video" : "Image"} uploaded to Cloudinary ✓ Its permanent URL is ready to save.`);
+    } finally {
+      setBusy(false);
+      input.value = "";
+    }
   };
 
-  /* ---- add / remove ---- */
-  const add = () => {
-    if (!form.title.trim() || !form.img.trim()) {
-      setNote("A title and an image (link or file) are required.");
+  /* ---- add / remove: MongoDB is the source of truth for managed entries ---- */
+  const add = async () => {
+    if (!token) {
+      setNote("Your admin session is not active. Log in again before saving.");
       return;
     }
+    if (!form.title.trim() || !form.img.trim()) {
+      setNote("A title and a public image URL are required.");
+      return;
+    }
+    const validUrl = (value: string) => {
+      try {
+        const url = new URL(value.trim());
+        return url.protocol === "https:" || url.protocol === "http:";
+      } catch {
+        return false;
+      }
+    };
+    if (!validUrl(form.img)) {
+      setNote("Use a public image URL beginning with https:// or http://. Device-only uploads cannot be saved to MongoDB.");
+      return;
+    }
+    if (form.video && !validUrl(form.video)) {
+      setNote("Use a public video URL beginning with https:// or http://.");
+      return;
+    }
+
+    setBusy(true);
+    setNote("Saving to MongoDB…");
     const item: CustomItem = {
       ...form,
-      id: form.id.trim() || `U${Date.now().toString().slice(-6)}`,
-      kind: form.video ? "video" : form.kind,
+      id: form.id.trim() || `U${Date.now().toString(36)}`,
+      kind: (form.video ?? "").trim() ? "video" : form.kind,
+      title: form.title.trim(),
+      place: form.place.trim(),
+      img: form.img.trim(),
+      video: form.video?.trim() || undefined,
+      tags: (form.video ?? "").trim()
+        ? [...new Set(["video", ...form.tags.filter((tag) => tag !== "photo")])]
+        : [...new Set(["photo", ...form.tags.filter((tag) => tag !== "video")])],
     };
-    const next = [item, ...loadCustom()];
-    saveCustom(next);
-    if (token) void apiAdd(token, item);
-    setItems(getLibraryItems());
-    setForm(blank);
-    setNote("Added to the library ✓");
-    if (fileRef.current) fileRef.current.value = "";
+
+    try {
+      const saved = await apiAdd(token, item);
+      if (!saved) {
+        setNote("Could not save to MongoDB. Check your session and Render logs, then try again.");
+        return;
+      }
+      const remote = await apiList();
+      const remoteIds = remote.map((entry) => entry.id);
+      setDatabaseIds(remoteIds);
+      setItems([
+        ...remote,
+        ...getLibraryItems().filter((entry) => !remoteIds.includes(entry.id)),
+      ]);
+      setForm(blank);
+      setNote("Saved to MongoDB ✓ The public library will show this item.");
+      if (fileRef.current) fileRef.current.value = "";
+      window.dispatchEvent(new Event("library:changed"));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
+    if (databaseIds.includes(id)) {
+      if (!token) {
+        setNote("Your admin session is not active. Log in again before deleting.");
+        return;
+      }
+      setBusy(true);
+      setNote("Removing from MongoDB…");
+      try {
+        const removed = await apiRemove(token, id);
+        if (!removed) {
+          setNote("Could not remove this item from MongoDB. Check your session and try again.");
+          return;
+        }
+        saveCustom(loadCustom().filter((item) => item.id !== id));
+        const remote = await apiList();
+        const remoteIds = remote.map((item) => item.id);
+        setDatabaseIds(remoteIds);
+        setItems([
+          ...remote,
+          ...getLibraryItems().filter((item) => !remoteIds.includes(item.id)),
+        ]);
+        setNote("Removed from MongoDB ✓ It is no longer in the public database library.");
+        window.dispatchEvent(new Event("library:changed"));
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    // Built-in sample entries are not database records; preserve their existing
+    // hide/restore behavior without pretending they were deleted from MongoDB.
     const custom = loadCustom();
-    if (custom.some((c) => c.id === id)) {
-      saveCustom(custom.filter((c) => c.id !== id));
+    if (custom.some((item) => item.id === id)) {
+      saveCustom(custom.filter((item) => item.id !== id));
     } else {
       saveHidden([...new Set([...loadHidden(), id])]);
     }
-    if (token) void apiRemove(token, id);
-    setItems(getLibraryItems());
+    const remote = items.filter((item) => databaseIds.includes(item.id));
+    setItems([
+      ...remote,
+      ...getLibraryItems().filter((item) => !databaseIds.includes(item.id)),
+    ]);
     setHidden(loadHidden());
-    setNote("Removed ✓");
+    setNote("Sample entry hidden on this browser. Database entries are deleted permanently.");
   };
 
   const restore = () => {
     saveHidden([]);
-    setItems(getLibraryItems());
+    const remote = items.filter((item) => databaseIds.includes(item.id));
+    setItems([...remote, ...getLibraryItems().filter((item) => !databaseIds.includes(item.id))]);
     setHidden([]);
-    setNote("All built-in items restored ✓");
-  };
-
-  const snippet = useMemo(
-    () =>
-      exportable(loadCustom())
-        .map(formatEntry)
-        .join("\n"),
-    [items],
-  );
-
-  const copySnippet = async () => {
-    try {
-      await navigator.clipboard.writeText(snippet);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
-    }
+    setNote("All built-in sample items restored ✓");
   };
 
   const strength = passwordStrength(pw);
@@ -628,6 +696,9 @@ export function Admin() {
                     placeholder="https://www.dropbox.com/s/…/poster.jpg?dl=0"
                     className={`${FIELD} border-paper/30 text-paper placeholder:text-paper/30`}
                   />
+                  {form.img.startsWith("https://res.cloudinary.com/") && (
+                    <p className="u-label mt-2 text-signal">Image uploaded ✓</p>
+                  )}
                 </div>
                 <div>
                   <label className="u-label block text-paper/60" htmlFor="a-video">
@@ -640,25 +711,27 @@ export function Admin() {
                     placeholder="https://www.dropbox.com/s/…/clip.mp4?dl=0"
                     className={`${FIELD} border-paper/30 text-paper placeholder:text-paper/30`}
                   />
+                  {form.video?.startsWith("https://res.cloudinary.com/") && (
+                    <p className="u-label mt-2 text-signal">Video uploaded ✓</p>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="mt-6">
                 <label className="u-label block text-paper/60" htmlFor="a-file">
-                  Choose a photo or video
+                  Upload a poster image or video file
                 </label>
                 <input
                   id="a-file"
                   ref={fileRef}
                   type="file"
                   accept="image/*,video/*"
-                  onChange={onFile}
+                  onChange={(event) => void onFile(event)}
+                  disabled={busy}
                   className="u-label mt-3 block w-full border border-dashed border-paper/35 px-4 py-6 text-paper/70 file:mr-4 file:border-0 file:bg-paper file:px-4 file:py-2.5 file:text-ink"
                 />
                 <p className="u-label mt-3 leading-[1.9] text-paper/50">
-                  Photos under 1.5 MB are kept on this device. Larger files and
-                  all videos preview only until the page reloads — use a link for
-                  anything visitors should always see.
+                  Selected files upload to Cloudinary and receive permanent public URLs. For a video entry, upload a poster image and the video clip separately, or paste their URLs above.
                 </p>
               </div>
             )}
@@ -689,7 +762,8 @@ export function Admin() {
 
           <button
             type="button"
-            onClick={add}
+            onClick={() => void add()}
+            disabled={busy}
             className="u-label-lg mt-8 flex items-center gap-3 bg-signal px-6 py-4 text-[#0B1013] transition-colors hover:bg-paper hover:text-ink"
           >
             Add to library <span aria-hidden="true">+</span>
@@ -734,7 +808,8 @@ export function Admin() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => remove(it.id)}
+                  onClick={() => void remove(it.id)}
+                  disabled={busy}
                   className="u-label shrink-0 border border-paper/30 px-3 py-2 transition-colors hover:border-signal hover:bg-signal hover:text-[#0B1013]"
                 >
                   Remove
@@ -752,28 +827,14 @@ export function Admin() {
 
           <div className="mt-8 border border-paper/25 p-6">
             <div className="u-label text-signal">
-              Publish — make it visible to everyone
+              Database publishing
             </div>
             <p className="u-label mt-3 leading-[1.9] text-paper/60">
-              A static site has no server, so items added here live in this
-              browser. Copy the entries below into{" "}
-              <span className="text-paper">src/data.ts</span> →{" "}
-              <span className="text-paper">LIBRARY</span> and push, and every
-              visitor sees them.
+              New entries are saved to MongoDB and loaded by the public Library page.
+              You no longer need to copy code into <span className="text-paper">src/data.ts</span> or redeploy to publish a media link.
             </p>
 
-            <pre className="u-num mt-4 max-h-56 overflow-auto border border-paper/20 bg-paper/[0.06] px-3 py-3 text-[10px] leading-[1.7] text-paper/85">
-              {snippet || "// add an item above to generate the code"}
-            </pre>
-
             <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={copySnippet}
-                className="u-label border border-paper/30 px-4 py-2.5 transition-colors hover:bg-paper hover:text-ink"
-              >
-                {copied ? "Copied ✓" : "Copy code"}
-              </button>
               <a
                 href="#library"
                 className="u-label border border-paper/30 px-4 py-2.5 transition-colors hover:bg-paper hover:text-ink"

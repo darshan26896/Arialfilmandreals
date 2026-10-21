@@ -103,3 +103,14 @@ It is stored hashed in MongoDB. After that the panel asks for the password and e
 | Login always fails | Atlas Network Access must allow `0.0.0.0/0` |
 | OTP email never arrives | add `RESEND_API_KEY`, or check Spam |
 | 502 | Render → Logs shows the exact error |
+
+
+## Library media uploads
+
+To upload images or videos directly from the admin panel, configure these Render environment variables from your Cloudinary dashboard:
+
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+The API secret stays on Render. The browser receives only a short-lived signed-upload payload; after upload, the resulting Cloudinary URL and library metadata are saved to MongoDB. If these variables are not configured, you can still add items by pasting public image/video URLs.
