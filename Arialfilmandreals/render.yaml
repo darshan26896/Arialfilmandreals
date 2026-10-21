@@ -31,6 +31,8 @@ services:
         sync: false
       - key: OTP_FROM
         value: onboarding@resend.dev
+      - key: OTP_ENABLED
+        value: "true"
 
       - key: NODE_VERSION
         value: 20

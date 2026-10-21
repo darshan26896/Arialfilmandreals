@@ -3,9 +3,7 @@ import {
   FILTERS,
   LIBRARY,
   STUDIO,
-  ADMIN_SETUP_KEY,
   ADMIN_EMAIL,
-  OTP_ENABLED,
   type LibraryItem,
 } from "../data";
 import { Mark, Reveal } from "../ui";
@@ -30,6 +28,8 @@ import {
   verifyOtp,
   apiAuthStatus,
   apiSetup,
+  apiSession,
+  apiLogout,
 } from "../lib/backend";
 
 const FIELD =
@@ -84,6 +84,13 @@ export function Admin() {
       const online = await probeBackend(true);
       setCloud(online);
       if (!online) return;
+
+      // Restore the admin UI only after the backend validates the HttpOnly cookie.
+      if (await apiSession()) {
+        setToken("cookie-session");
+        setUnlocked(true);
+      }
+
       const configured = await apiAuthStatus();
       if (configured !== null) setHasPassword(configured);
       const remote = await apiList();
@@ -117,66 +124,51 @@ export function Admin() {
     setError("");
     try {
       if (!cloud) {
-        setError(
-          "Cannot reach the database. Set API_BASE in src/data.ts to your Render URL.",
-        );
+        setError("Cannot reach the backend. Check the Vercel /api rewrite and Render service status.");
         return;
       }
 
+      let result: string | null;
       if (needEntry) {
-        /* sign in against MongoDB */
-        const t = await apiLogin(pw);
-        if (!t) {
-          setError("Wrong password. Try again.");
+        result = await apiLogin(pw);
+        if (!result) {
+          setError("Wrong password or authentication service error. Try again.");
           return;
         }
-        setToken(t);
       } else {
-        /* first run — create the password in MongoDB */
-        if (ADMIN_SETUP_KEY.trim() === "AFM-SETUP-ONLY-YOU-KNOW") {
-          setError(
-            "Set ADMIN_SETUP_KEY in src/data.ts and in your Render environment first.",
-          );
-          return;
-        }
-        if (setupKey.trim() !== ADMIN_SETUP_KEY.trim()) {
-          setError("That setup key is not correct.");
-          return;
-        }
         if (passwordStrength(pw) < 3) {
-          setError(
-            "Use at least 12 characters with capitals, numbers and a symbol.",
-          );
+          setError("Use at least 12 characters with capitals, numbers and a symbol.");
           return;
         }
         if (pw !== pw2) {
           setError("The two passwords do not match.");
           return;
         }
-        const t = await apiSetup(setupKey.trim(), pw);
-        if (!t) {
-          setError("Could not create the password — please try again.");
+        result = await apiSetup(setupKey.trim(), pw);
+        if (!result) {
+          setError("Could not create the password — please check the setup key and try again.");
           return;
         }
-        setToken(t);
         setHasPassword(true);
       }
+
       setPw("");
       setPw2("");
 
-      /* second factor — a 6-digit code sent to the admin email */
-      if (OTP_ENABLED) {
-        setOtpNote("Sending…");
-        setStage("otp");
-        const sent = await sendOtp(ADMIN_EMAIL);
-        setOtpNote(
-          sent === "failed"
-            ? "Could not send the code — check the email settings and try again."
-            : "",
-        );
-      } else {
+      if (result === "cookie-session") {
+        setToken("cookie-session");
         setUnlocked(true);
+        return;
       }
+
+      // The server says OTP is required; no authenticated cookie exists yet.
+      setToken(null);
+      setOtpNote("Sending…");
+      setStage("otp");
+      const sent = await sendOtp(ADMIN_EMAIL);
+      setOtpNote(sent === "failed"
+        ? "Could not send the code — check the Resend settings and try again."
+        : "");
     } finally {
       setBusy(false);
     }
@@ -188,11 +180,11 @@ export function Admin() {
     setOtpNote("");
     try {
       const t = await verifyOtp(ADMIN_EMAIL, otp);
-      if (!t) {
-        setOtpNote("That code is not right or has expired.");
+      if (t !== "cookie-session") {
+        setOtpNote("That code is not right, has expired, or the session cookie could not be set.");
         return;
       }
-      if (t !== "local-session") setToken(t);
+      setToken("cookie-session");
       setUnlocked(true);
     } finally {
       setBusy(false);
@@ -207,6 +199,28 @@ export function Admin() {
         ? "Could not send the code — check the email settings."
         : "A new code has been sent ✓",
     );
+  };
+
+  const logout = async () => {
+    setBusy(true);
+    try {
+      const ok = await apiLogout();
+      if (!ok) {
+        setNote("Could not confirm logout with the backend. Check the connection and try again.");
+        return;
+      }
+      setToken(null);
+      setUnlocked(false);
+      setStage("password");
+      setOtp("");
+      setOtpNote("");
+      setPw("");
+      setPw2("");
+      setError("");
+      setNote("");
+    } finally {
+      setBusy(false);
+    }
   };
 
   /* ---- media sources ---- */
@@ -508,10 +522,10 @@ export function Admin() {
           </span>
           <button
             type="button"
-            onClick={() => setUnlocked(false)}
+            onClick={() => void logout()}
             className="u-label border border-paper/30 px-3.5 py-2 transition-colors hover:bg-paper hover:text-ink"
           >
-            Lock panel
+            Log out
           </button>
         </div>
       </div>

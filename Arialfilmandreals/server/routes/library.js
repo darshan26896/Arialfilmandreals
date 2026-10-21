@@ -1,5 +1,5 @@
 import { getCollection, json, handleOptions } from "../lib/db.js";
-import { verifyToken } from "./auth.js";
+import { getSessionToken, verifyToken } from "./auth.js";
 
 /**
  * Media library API
@@ -103,8 +103,7 @@ export default async function handler(req, res) {
     }
 
     // All write operations require an authenticated admin.
-    const auth = req.headers.authorization || "";
-    const token = auth.replace(/^Bearer\s+/i, "");
+    const token = getSessionToken(req);
 
     if (!token || !verifyToken(token)) {
       return json(res, 401, {

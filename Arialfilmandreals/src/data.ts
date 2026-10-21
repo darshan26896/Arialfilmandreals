@@ -25,19 +25,8 @@ export const WEB3FORMS_KEY = "PASTE_YOUR_WEB3FORMS_ACCESS_KEY";
  * share links works without it. */
 export const DROPBOX_APP_KEY = "PASTE_YOUR_DROPBOX_APP_KEY";
 
-/* ------------------------------------------------------------------ *
- * ADMIN PANEL LOCK                                                    *
- *                                                                     *
- * Best: keep the hash out of the source entirely. Add a GitHub Actions *
- * secret named ADMIN_PASSWORD_SHA256 (and optionally ADMIN_SETUP_KEY)  *
- * in Settings → Secrets and variables → Actions. The deploy workflow   *
- * passes them to the build below, so the value is never written into   *
- * your repository. Generate the hash with:                             *
- *   node -e "console.log(require('crypto').createHash('sha256')        *
- *     .update('YOUR-STRONG-PASSWORD').digest('hex'))"                  *
- *                                                                      *
- * You can also paste the values straight in below if you prefer.       *
- * ------------------------------------------------------------------ */
+/* Admin authentication is verified by the Render backend against MongoDB.
+ * Do not put passwords, setup keys, or session tokens in frontend source. */
 
 const ENV: Record<string, string | undefined> =
   (import.meta as unknown as { env?: Record<string, string | undefined> })
@@ -46,22 +35,13 @@ const ENV: Record<string, string | undefined> =
 /* Auth is handled by MongoDB only — the password is stored in the database
  * and never appears in the code, the repository or GitHub Secrets. */
 
-/* ---- FRONTEND on Vercel · BACKEND on Render ----
- * Give the site your Render URL in either of two ways:
- *   1. paste it below, e.g. "https://arialfilmandreals.onrender.com"
- *   2. or set VITE_API_BASE in Vercel → Settings → Environment Variables
- * Leave both empty when the site and the API share a domain. */
-const RENDER_URL = "https://arialfilmandreals.onrender.com";
+/* API requests use the same-origin /api path. Vercel rewrites /api/* to Render,
+ * so the HttpOnly session cookie is first-party and survives page reloads.
+ * Do not set VITE_API_BASE to the Render URL in Vercel; that bypasses the proxy. */
+export const API_BASE = ENV.VITE_API_BASE || "";
 
-export const API_BASE = ENV.VITE_API_BASE || RENDER_URL;
-
-/* Only needed for the one-time password setup — it must match the
- * ADMIN_SETUP_KEY set in your Render environment variables. */
-export const ADMIN_SETUP_KEY = "0000123456789";
-
-/* Two-step login: a 6-digit code is emailed after the password. Set the
- * GitHub secret VITE_OTP_ENABLED to "false" to switch it off. */
-export const OTP_ENABLED = ENV.VITE_OTP_ENABLED !== "false";
+/* The setup key is verified only by Render and is never embedded in the frontend bundle.
+ * Password + OTP is enabled by default; set OTP_ENABLED=false on Render only if needed. */
 export const ADMIN_EMAIL = ENV.VITE_ADMIN_EMAIL ?? STUDIO.email;
 
 export const NAV = [
