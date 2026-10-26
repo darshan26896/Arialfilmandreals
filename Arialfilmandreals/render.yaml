@@ -31,16 +31,6 @@ services:
         sync: false
       - key: OTP_FROM
         value: onboarding@resend.dev
-      - key: OTP_ENABLED
-        value: "true"
-
-      # --- media uploads (Cloudinary) ---
-      - key: CLOUDINARY_CLOUD_NAME
-        sync: false
-      - key: CLOUDINARY_API_KEY
-        sync: false
-      - key: CLOUDINARY_API_SECRET
-        sync: false
 
       - key: NODE_VERSION
         value: 20

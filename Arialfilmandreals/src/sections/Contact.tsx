@@ -57,7 +57,7 @@ export function Contact() {
         body: JSON.stringify({
           access_key: WEB3FORMS_KEY,
           subject: `New shoot enquiry — ${form.name} (${form.type})`,
-          from_name: "Arialfilmandreals · Website enquiry",
+          from_name: "HEAVENS FILMS · Website enquiry",
           replyto: form.email || undefined,
           botcheck: "",
           ...payload(),

@@ -1,13 +1,7 @@
 
 import crypto from "node:crypto";
 import { getCollection, json, handleOptions } from "../lib/db.js";
-import {
-  issueToken,
-  setSessionCookie,
-  getChallengeToken,
-  verifyChallengeToken,
-  clearChallengeCookie,
-} from "./auth.js";
+import { issueToken } from "./auth.js";
 
 const sha = (value) =>
   crypto.createHash("sha256").update(String(value)).digest("hex");
@@ -35,9 +29,9 @@ async function sendEmail(to, code) {
       body: JSON.stringify({
         from:
           process.env.OTP_FROM ||
-          "Aerial Film & Reel Studio <onboarding@resend.dev>",
+          "HEAVENS FILMS <onboarding@resend.dev>",
         to: [to],
-        subject: "Aerial Film & Reel Studio — Admin Login Code",
+        subject: "HEAVENS FILMS — Admin Login Code",
         html: `
           <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto">
             <h2>Admin Login Verification</h2>
@@ -99,14 +93,6 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const action = body.action;
-  const challenge = getChallengeToken(req);
-
-  if (!verifyChallengeToken(challenge)) {
-    return json(res, 401, {
-      ok: false,
-      error: "Complete the password step before requesting or verifying an OTP.",
-    });
-  }
 
   // Always use the configured admin email.
   // Never allow a client to choose the OTP recipient.
@@ -208,11 +194,9 @@ export default async function handler(req, res) {
 
       await store.deleteOne({ _id: doc._id });
 
-      setSessionCookie(res, issueToken());
-      clearChallengeCookie(res);
       return json(res, 200, {
         ok: true,
-        authenticated: true,
+        token: issueToken(),
       });
     }
 

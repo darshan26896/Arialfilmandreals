@@ -9,10 +9,10 @@
  *
  * Routes
  *   GET    /api/health    liveness check
- *   POST   /api/auth      status | setup | change | login | session | logout
+ *   POST   /api/auth      status | setup | change | login
  *   GET    /api/library   public library list
- *   POST   /api/library   add an item            (HttpOnly admin cookie required)
- *   DELETE /api/library   remove an item         (HttpOnly admin cookie required)
+ *   POST   /api/library   add an item            (session token required)
+ *   DELETE /api/library   remove an item         (session token required)
  *   POST   /api/otp       send | verify email codes
  */
 
@@ -28,23 +28,14 @@ const PORT = process.env.PORT || 3000;
 
 const app = express();
 
-/* Credentialed CORS for optional direct API access. In production, the Vercel
- * /api rewrite keeps browser requests same-origin and avoids third-party-cookie blocking.
- * Set FRONTEND_ORIGINS to a comma-separated list if direct cross-origin access is needed. */
+/* CORS — the website is hosted separately on Vercel */
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowed = (process.env.FRONTEND_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
-    .split(",").map((value) => value.trim()).filter(Boolean);
-
-  if (origin && allowed.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    res.setHeader("Vary", "Origin");
-  }
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
 
   if (req.method === "OPTIONS") return res.status(204).end();
+
   next();
 });
 

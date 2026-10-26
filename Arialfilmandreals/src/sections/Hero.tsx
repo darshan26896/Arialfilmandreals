@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { STUDIO, NAV, STATS } from "../data";
-import { Mark, ChartOverlay, CameraHUD, TimelineStrip, Ticker } from "../ui";
+import { ChartOverlay, CameraHUD, TimelineStrip, Ticker } from "../ui";
 import { KeyRound } from "lucide-react";
 import { usePlan, type Plan } from "../theme";
 
@@ -89,7 +89,7 @@ export function Header({ onOpenAdmin }: { onOpenAdmin: () => void }) {
     <header className="fixed inset-x-0 top-0 z-30 border-b border-ink/20 bg-paper/95 backdrop-blur-sm xl:left-[52px]">
       <div className="flex h-14 items-center gap-3 px-4 sm:gap-5 sm:px-7">
         <a href="#top" className="flex shrink-0 items-center gap-2.5 text-ink">
-          <Mark className="h-7 w-7 text-signal" />
+          <img src="/heavens-films-mark.png" alt="HEAVENS FILMS drone-camera logo" className="h-9 w-9 shrink-0 object-contain" />
           <span className="leading-none">
             <span className="u-wordmark block whitespace-nowrap text-[16px] sm:text-[21px]">
               {STUDIO.name}

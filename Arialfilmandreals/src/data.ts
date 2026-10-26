@@ -1,6 +1,6 @@
 export const STUDIO = {
-  name: "Arialfilmandreals",
-  full: "Aerial Film & Reel Studio",
+  name: "HEAVENS FILMS",
+  full: "HEAVENS FILMS",
   base: "Sector 23, Gandhinagar, Gujarat 382023",
   phone: "+91 9429368879",
   phoneHref: "tel:+9429368879",
@@ -25,8 +25,19 @@ export const WEB3FORMS_KEY = "PASTE_YOUR_WEB3FORMS_ACCESS_KEY";
  * share links works without it. */
 export const DROPBOX_APP_KEY = "PASTE_YOUR_DROPBOX_APP_KEY";
 
-/* Admin authentication is verified by the Render backend against MongoDB.
- * Do not put passwords, setup keys, or session tokens in frontend source. */
+/* ------------------------------------------------------------------ *
+ * ADMIN PANEL LOCK                                                    *
+ *                                                                     *
+ * Best: keep the hash out of the source entirely. Add a GitHub Actions *
+ * secret named ADMIN_PASSWORD_SHA256 (and optionally ADMIN_SETUP_KEY)  *
+ * in Settings → Secrets and variables → Actions. The deploy workflow   *
+ * passes them to the build below, so the value is never written into   *
+ * your repository. Generate the hash with:                             *
+ *   node -e "console.log(require('crypto').createHash('sha256')        *
+ *     .update('YOUR-STRONG-PASSWORD').digest('hex'))"                  *
+ *                                                                      *
+ * You can also paste the values straight in below if you prefer.       *
+ * ------------------------------------------------------------------ */
 
 const ENV: Record<string, string | undefined> =
   (import.meta as unknown as { env?: Record<string, string | undefined> })
@@ -35,13 +46,22 @@ const ENV: Record<string, string | undefined> =
 /* Auth is handled by MongoDB only — the password is stored in the database
  * and never appears in the code, the repository or GitHub Secrets. */
 
-/* API requests use the same-origin /api path. Vercel rewrites /api/* to Render,
- * so the HttpOnly session cookie is first-party and survives page reloads.
- * Do not set VITE_API_BASE to the Render URL in Vercel; that bypasses the proxy. */
-export const API_BASE = ENV.VITE_API_BASE || "";
+/* ---- FRONTEND on Vercel · BACKEND on Render ----
+ * Give the site your Render URL in either of two ways:
+ *   1. paste it below, e.g. "https://arialfilmandreals.onrender.com"
+ *   2. or set VITE_API_BASE in Vercel → Settings → Environment Variables
+ * Leave both empty when the site and the API share a domain. */
+const RENDER_URL = "https://arialfilmandreals.onrender.com";
 
-/* The setup key is verified only by Render and is never embedded in the frontend bundle.
- * Password + OTP is enabled by default; set OTP_ENABLED=false on Render only if needed. */
+export const API_BASE = ENV.VITE_API_BASE || RENDER_URL;
+
+/* Only needed for the one-time password setup — it must match the
+ * ADMIN_SETUP_KEY set in your Render environment variables. */
+export const ADMIN_SETUP_KEY = "0000123456789";
+
+/* Two-step login: a 6-digit code is emailed after the password. Set the
+ * GitHub secret VITE_OTP_ENABLED to "false" to switch it off. */
+export const OTP_ENABLED = ENV.VITE_OTP_ENABLED !== "false";
 export const ADMIN_EMAIL = ENV.VITE_ADMIN_EMAIL ?? STUDIO.email;
 
 export const NAV = [
@@ -203,7 +223,7 @@ export const RATES = [
   {
     code: "A",
     name: "Reel Drop",
-    price: "1,999",
+    price: "2,999",
     note: "Solo creators, small cafés, one-day listings",
     items: [
       "1 location · up to 3 hours on site",
@@ -216,7 +236,7 @@ export const RATES = [
   {
     code: "B",
     name: "Aerial Half-Day",
-    price: "4,999",
+    price: "6,999",
     note: "Most booked — villas, sangeet, brand shoots",
     items: [
       "4 hours · up to 2 locations in Gandhinagar",
@@ -231,7 +251,7 @@ export const RATES = [
   {
     code: "C",
     name: "Full Production",
-    price: "7,999",
+    price: "9,999",
     note: "Weddings, developers, heritage & tourism films",
     items: [
       "Full day · up to 3 locations · 2-person crew",
@@ -244,7 +264,7 @@ export const RATES = [
   {
     code: "D",
     name: "Monthly Retainer",
-    price: "6,999",
+    price: "8,999",
     note: "Per month · cafés, gyms, salons, realtors",
     items: [
       "8 reels every month, shot in 2 visits",
@@ -439,5 +459,27 @@ export const LIBRARY: LibraryItem[] = [
     img: "images/lib-night.jpg",
     tags: ["photo", "events"],
     ratio: "aspect-[16/10]",
+  },
+    {
+    id: "U551861",
+    kind: "video",
+    title: "TatSaraasa Resort & Spa",
+    place: "5-star hotel, Udaipur, Rajasthan",
+    meta: "Still · 12 MP · DJI Neo",
+    img: "https://www.dropbox.com/scl/fi/ix4bqiifvurlhjvqaz5x6/OIP.webp?rlkey=o2ttje7u764l7a2tpkbx2bxkl&st=gros5hq4&dl=0",
+    video: "https://www.dropbox.com/scl/fi/ss0ijkumq1jsvc07nex3e/lv_0_20261009051310.mp4?rlkey=3f7thdyrv6rxvfatuya3egkrj&st=m66ltyt9&dl=0",
+    tags: ["photo", "video"],
+    ratio: "aspect-[4/3]",
+  },
+    {
+    id: "U213147",
+    kind: "video",
+    title: "New Car delivery",
+    place: "Nanda automobiles gandhinagar",
+    meta: "Still · 12 MP · DJI Neo",
+    img: "https://res.cloudinary.com/iuve16au/image/upload/v1791848018/OIP.webp",
+    video: "https://player.cloudinary.com/embed/?cloud_name=iuve16au&public_id=lv_0_20261009051310",
+    tags: ["photo", "video"],
+    ratio: "aspect-[4/3]",
   },
 ];

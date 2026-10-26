@@ -1,13 +1,14 @@
 
 import express from "express";
 import crypto from "node:crypto";
-import { getSessionToken, verifyToken } from "./auth.js";
+import { verifyToken } from "./auth.js";
 
 
 const router = express.Router();
 
 router.post("/", (req, res) => {
-  const token = getSessionToken(req);
+  const auth = req.headers.authorization || "";
+  const token = auth.replace(/^Bearer\s+/i, "");
 
   if (!token || !verifyToken(token)) {
     return res.status(401).json({

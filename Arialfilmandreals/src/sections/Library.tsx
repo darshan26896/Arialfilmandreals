@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FILTERS, type LibraryItem } from "../data";
+import { FILTERS } from "../data";
 import { mediaUrl } from "../lib/dropbox";
 import { getLibraryItems } from "../lib/admin";
-import { apiList } from "../lib/backend";
 import { Reveal, SectionHead } from "../ui";
 
 export function Library() {
@@ -12,7 +11,6 @@ export function Library() {
   const [failed, setFailed] = useState<Record<string, boolean>>({});
 
   const [refresh, setRefresh] = useState(0);
-  const [databaseItems, setDatabaseItems] = useState<LibraryItem[]>([]);
 
   useEffect(() => {
     const onChange = () => setRefresh((r) => r + 1);
@@ -20,22 +18,10 @@ export function Library() {
     return () => window.removeEventListener("library:changed", onChange);
   }, []);
 
-  useEffect(() => {
-    let active = true;
-    apiList().then((remote) => {
-      if (active) setDatabaseItems(remote);
-    });
-    return () => { active = false; };
-  }, [refresh]);
-
   const items = useMemo(() => {
-    const remoteIds = new Set(databaseItems.map((item) => item.id));
-    const all = [
-      ...databaseItems,
-      ...getLibraryItems().filter((item) => !remoteIds.has(item.id)),
-    ];
+    const all = getLibraryItems();
     return filter === "all" ? all : all.filter((i) => i.tags.includes(filter));
-  }, [filter, refresh, databaseItems]);
+  }, [filter, refresh]);
 
   useEffect(() => {
     if (open === null) return;
