@@ -89,14 +89,12 @@ export function Header({ onOpenAdmin }: { onOpenAdmin: () => void }) {
     <header className="fixed inset-x-0 top-0 z-30 border-b border-ink/20 bg-paper/95 backdrop-blur-sm xl:left-[52px]">
       <div className="flex h-14 items-center gap-3 px-4 sm:gap-5 sm:px-7">
         <a href="#top" className="flex shrink-0 items-center gap-2.5 text-ink">
-          <img src="/heavens-films-mark.png" alt="HEAVENS FILMS drone-camera logo" className="h-9 w-9 shrink-0 object-contain" />
+          <img src="/heavens-films-mark.png" alt="HEAVENS FILMS drone-camera logo" className="h-12 w-12 shrink-0 object-contain" />
           <span className="leading-none">
             <span className="u-wordmark block whitespace-nowrap text-[16px] sm:text-[21px]">
               {STUDIO.name}
             </span>
-            <span className="u-label mt-2.5 block text-[8.5px] text-inksoft">
-              Drone photo &amp; video
-            </span>
+            
           </span>
         </a>
 
